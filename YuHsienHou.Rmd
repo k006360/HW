@@ -1,0 +1,215 @@
+---
+title: "Predicting the best Chess opening Strategy on both white and black side."
+subtitle: "the relationship between opening, sides, win rates,last moves, most efficient opening, weakness" 
+author: "Yu-Hsien Hou (Ken Hou)"
+date:  "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  bookdown::pdf_document2:
+    toc: true
+    toc_depth: 4
+    fig_caption: true
+fontsize: 12pt
+geometry: "left=1cm,right=1cm,top=1.5cm,bottom=1.5cm"
+always_allow_html: yes
+header-includes:
+- \usepackage[section]{placeins}
+- \usepackage{fixltx2e}
+- \usepackage{longtable}
+- \usepackage{pdflscape}
+- \usepackage{graphicx}
+- \usepackage{caption}
+- \usepackage{gensymb}
+- \usepackage{subcaption}
+- \DeclareUnicodeCharacter{2264}{$\pm$}
+- \DeclareUnicodeCharacter{2265}{$\geq$}
+- \usepackage{fancyhdr}
+- \usepackage{lipsum}
+#- \pagestyle{fancy}
+#- \fancyhead{DRAFT}
+---
+
+```{r setup, include = FALSE}
+
+#Please modify the chunk set up as you wish, some options are in # below
+knitr::opts_chunk$set(fig.align = "center")
+
+#echo = FALSE, comment = FALSE, warning = FALSE, message = FALSE, dpi = 600, dev = 'png',
+#knitr::opts_chunk$set(fig.width=12, fig.height=8) 
+
+#Add packages
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+#Set universal them for figures
+theme_set(theme_light())
+
+```
+```{r}
+
+library(readxl)
+chess <- read_excel("C:/Users/k0063/cwrudsci-20s-dsci353-353m-453-prof-f678d9ea895a/1-assignments/Update/chess/chess.xlsx")
+A <- read_excel("C:/Users/k0063/cwrudsci-20s-dsci353-353m-453-prof-f678d9ea895a/1-assignments/Update/chess/A.xlsx")
+summary(chess)
+library(dplyr)
+openrank <- chess %>% arrange(opening_name) %>% count(opening_name) %>% arrange(desc(n))
+confrk <- openrank %>% filter(n>9)
+sum <- sum(confrk[,2])
+summary(openrank)
+summary(confrk)
+
+```
+
+
+```{r}
+
+i <- t(confrk[,-2])
+x <- 0
+
+for (opening_name in i) {
+   a <- opening_name
+   x <- x+1
+   B <- chess %>% filter(opening_name == a)
+   C<-merge(A,B,all = TRUE)
+   A <- C
+   
+}
+summary(C)
+```
+
+
+```{r}
+x <- 0
+A <- t(confrk[,-1])
+WR1 <- read_excel("C:/Users/k0063/cwrudsci-20s-dsci353-353m-453-prof-f678d9ea895a/1-assignments/Update/chess/WR1.xlsx")
+
+for (opening_name in i) {
+   x <- x+1
+   opening <- opening_name
+   
+   times <- A %>% nth(x)
+   
+   winner <- C %>% filter( opening_name == opening ) %>% nth(7)
+   
+   sum_wins <- sum(winner)
+   
+   wrate <- sum_wins/times
+   
+   index <- duplicated(C[,15])
+   m <- C[!index,]
+   moves <- m %>% arrange(opening_name) %>% filter( opening_name == opening ) %>% nth(16)
+   
+   
+   WR_ <- data.frame(opening,moves,times,sum_wins,wrate)
+   WR <- merge(WR_,WR1, all = TRUE)
+   WR1 <- WR
+   
+}
+```
+
+
+```{r}
+   WR <- WR %>% mutate(mostwin = times * sum_wins,logmw = log(abs(times * sum_wins)))
+
+```
+
+
+```{r}
+library(ggplot2)
+WR %>% arrange(desc(wrate))
+summary(WR)
+plot(WR)
+
+
+```
+
+
+```{r}
+ggplot(WR, aes(x = times,y = sum_wins)) + geom_point(aes(x=times,y=sum_wins,color= factor(moves))) + geom_smooth(aes(x=times,y=sum_wins),method = "loess")
+
+ggplot(WR, aes(x = times,y = wrate)) + geom_point(aes(x=times,y=wrate,color= factor(moves)))+geom_smooth(aes(x=times,y=wrate),method = "loess")
+
+ggplot(WR, aes(x = wrate,fill =factor( moves))) + geom_histogram(binwidth = 0.025)
+sd(WR$wrate)
+
+
+```
+
+
+```{r}
+
+Whitewrtate <- WR %>% filter(wrate == max(wrate))
+print(Whitewrtate)
+Blackwrtate <- WR %>% filter(wrate == min(wrate))
+print(Blackwrtate)
+
+Mostwhitewin <- WR %>% filter(mostwin == max(mostwin))
+print(Mostwhitewin)
+Mostblackwin <- WR %>% filter(mostwin == min(mostwin))
+print(Mostblackwin)
+
+```
+
+
+```{r}
+
+
+ggplot(WR, aes(y = mostwin,x = wrate)) + geom_point(aes(y=mostwin,x=wrate,color= factor(sum_wins))) + geom_smooth(aes(y=mostwin,x=wrate,color="white"),method = "glm")
+
+ggplot(WR, aes(y = logmw,x = wrate)) + geom_point(aes(y=logmw,x=wrate,color= factor(sum_wins))) + geom_smooth(aes(y=logmw,x=wrate,color="white"),method = "loess")
+
+
+
+
+```
+
+
+
+
+```{r}
+WEEK <- 0
+```
+########################################################################################################################################################################################################################################################################################
+```{r}
+WEEK <- WEEK+1
+print('Weekly Update')
+print(WEEK)
+```
+
+# Background
+  * Chess is a two-player 8*8 grid board game with King, Queen, Bishops, Knights, Rooks and Pawns. It is believed develop from an Indian strategy game, which looks quite similar to chess and Chinese Chess. In Chess Games, there are all kinds of opening, which is fully developed strategies for beginning games, influence the later game plan and positions. 
+
+# Introduction
+  * Predict the best Chess opening strategy with respect to different opponent strategies, in order to perform the most efficient, highest win rate games.
+  * Dataset resource : Kaggle
+  * Original Data : Lichess.org
+  * Dataset: 20058 observations 17 variables
+   
+# Currently Progress Update
+  * Clean up colums into 3 files:
+    1.16753 observations 13 variables
+    2.1477 observations 4 variables
+    3.407 observations 7 variables
+
+# EDA
+```{r}
+plot(WR)
+
+ggplot(WR, aes(x = times,y = sum_wins)) + geom_point(aes(x=times,y=sum_wins,color= factor(moves))) + geom_smooth(aes(x=times,y=sum_wins),method = "loess")
+
+ggplot(WR, aes(x = wrate,fill =factor( moves))) + geom_histogram(binwidth = 0.025)
+
+ggplot(WR, aes(y = mostwin,x = wrate)) + geom_point(aes(y=mostwin,x=wrate,color= factor(sum_wins))) + geom_smooth(aes(y=mostwin,x=wrate,color="white"),method = "glm")
+
+print(Whitewrtate)
+print(Blackwrtate)
+```
+# Next Week Focusing
+  * Working on other methods to compare the datas with the results.
+  * Develop more variables from the original dataset
+   
+# References
+Kaggle dataset: 
+1. https://www.kaggle.com/datasnaek/chess
+2. https://www.kaggle.com/liury123/chess-game-from-12-top-players
+3. https://www.kaggle.com/odartey/top-chess-players
