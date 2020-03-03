@@ -1,0 +1,290 @@
+---
+title: "DSCI353-353m-453: LE3a"
+subtitle: "2001-353-353m-453-LE3a-HierarchicalClustering"
+author: "Roger H. French, Peitian Wang"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    number_sections: true
+    toc_depth: 6
+    highlight: tango
+  html_document:
+    toc: yes
+urlcolor: blue
+---
+
+3 questions = 1 points total.
+
+# Introduction [Machine Learning Portal](https://en.wikipedia.org/wiki/Portal:Machine_learning)
+
+  A very useful resource
+  
+## [Overview of Clustering](https://en.wikipedia.org/wiki/Cluster_analysis)
+
+Cluster analysis or clustering is the task 
+
+  - of grouping a set of objects 
+    - in such a way that objects in the same group (called a cluster) 
+    - are more similar (in some sense) to each other 
+    - than to those in other groups (clusters). 
+
+It is a main task of exploratory data mining, 
+
+  - and a common technique for statistical data analysis, 
+  - used in many fields, including 
+    - machine learning, 
+    - pattern recognition, 
+    - image analysis, 
+    - information retrieval, 
+    - bioinformatics, 
+    - data compression, 
+    - and computer graphics.
+
+## [K-means Clustering](https://en.wikipedia.org/wiki/K-means_clustering)
+
+is a method of vector quantization, 
+
+  - originally from signal processing, 
+  - that is popular for cluster analysis in data mining. 
+
+k-means clustering aims to partition 
+
+  - n observations into k clusters 
+    - in which each observation belongs to the cluster with the nearest mean, 
+    -  serving as a prototype of the cluster. 
+  - This results in a partitioning of the data space into Voronoi cells.
+
+## [Hierarchical Clustering](https://en.wikipedia.org/wiki/Hierarchical_clustering)
+
+### [Agglomerative Hierarchical Clustering](https://en.wikipedia.org/wiki/Hierarchical_clustering#Agglomerative_clustering_example)
+
+This is a "bottom up" approach: 
+
+  - each observation starts in its own cluster, 
+  - and pairs of clusters are merged as one moves up the hierarchy.
+
+### [Divisive Hierarchical Clustering](https://en.wikipedia.org/wiki/Hierarchical_clustering#Divisive_clustering)
+
+This is a "top down" approach: 
+
+  - all observations start in one cluster, 
+  - and splits are performed recursively as one moves down the hierarchy.
+
+
+# Question 1. Simple K-means clustering on the Iris dataset (0.25 point)
+
+Plot the Iris dataset using ggplot
+
+```{r}
+library(ggplot2)
+iris <- iris
+ggplot(iris,aes(x=Sepal.Length,y=Sepal.Width))+geom_point(aes(x=Sepal.Length,y=Sepal.Width))
+
+```
+
+Now cluster the irises with kmeans and k = 3
+
+  - Don't forget to set.seed for reproducibility
+
+```{r}
+library(simEd)
+library(ggplot2)
+library(dplyr)
+iris1 <- iris %>% filter(Species == "setosa") %>% mutate(n = "1") 
+iris1 <- iris1[,-5]
+iris2 <- iris %>% filter(Species == "versicolor") %>% mutate(n = "2") 
+iris2 <- iris2[,-5]
+iris3 <- iris %>% filter(Species == "virginica") %>% mutate(n = "3") 
+iris3 <- iris3[,-5]
+iris <- rbind(iris1,iris2,iris3)
+ set.seed(128)
+k1 <- kmeans(iris, 3)
+set.seed(64)
+k2 <- kmeans(iris, 3)
+set.seed(32)
+k3 <- kmeans(iris, 3)
+
+
+```
+
+Now lets look at a table of the k-means results
+
+  - use the table function
+
+```{r}
+table(k1$cluster)
+table(k2$cluster)
+table(k3$cluster)
+print(k1)
+```
+
+And now lets make a ggplot of the irisi clusters
+
+```{r}
+iris %>%  
+  as_tibble() %>%
+  mutate(cluster = k1$cluster) %>%
+  ggplot(aes(Sepal.Length, Sepal.Width, color = factor(cluster),label = n)) +
+  geom_text()
+iris %>%  
+  as_tibble() %>%
+  mutate(cluster = k2$cluster) %>%
+  ggplot(aes(Sepal.Length, Sepal.Width, color = factor(cluster),label = n)) +
+  geom_text()
+iris %>%  
+  as_tibble() %>%
+  mutate(cluster = k3$cluster) %>%
+  ggplot(aes(Sepal.Length, Sepal.Width, color = factor(cluster),label = n)) +
+  geom_text()
+```
+
+# Question 2. K-means vs. Hierarchical Clustering (0.25 point)
+
+Now lets do the same iris clustering but using hclust
+
+  - where we don't have to specify k = 3!
+
+ k means clustering, requires us to specify the number of clusters
+ 
+  - and finding the optimal number of clusters can often be hard. 
+  
+Hierarchical clustering is an alternative approach 
+
+  - which builds a hierarchy from the bottom-up, 
+  - and doesn’t require us to specify the number of clusters beforehand.
+
+The algorithm works as follows:
+
+  - Put each data point in its own cluster.
+  - Identify the closest two clusters and combine them into one cluster.
+  - Repeat the above step till all the data points are in a single cluster.
+  - Once this is done, it is usually represented by a dendrogram like structure.
+
+There are a few ways to determine how close two clusters are:
+
+  - Complete linkage clustering: 
+    - Find the maximum possible distance between points 
+    - belonging to two different clusters.
+  - Single linkage clustering: 
+    - Find the minimum possible distance between points 
+    - belonging to two different clusters.
+  - Mean linkage clustering: 
+    - Find all possible pairwise distances for points 
+      - belonging to two different clusters and then calculate the average.
+  - Centroid linkage clustering: 
+    - Find the centroid of each cluster 
+    - and calculate the distance between centroids of two clusters.
+  - Complete linkage and mean linkage clustering are the ones used most often.
+
+# Question 3. Clustering (0.5 point)
+
+K Means Clustering on the Iris dataset
+
+  - shows that there were 3 different species of flowers.
+
+Let us see how well the hierarchical clustering algorithm can do. 
+
+  - We can use hclust for this. 
+    - hclust requires us to provide the data in the form of a distance matrix.
+    - We can do this by using dist. 
+    - By default, the complete linkage method is used.
+
+```{r}
+hc <- hclust(dist(iris[, 3]))
+plot(hc)
+```
+
+Which generates the above dendrogram:
+
+We can see from the figure 
+
+  - that the best choices for total number of clusters 
+    - are either 3 or 4:
+
+To do this, we can cut off the tree 
+
+  - at the desired number of clusters using cutree.
+
+So lets look at cutting at the level 2
+```{r}
+hcut2 <- cutree(hc, 2)
+```
+
+Lets look at cutting at level 3
+```{r}
+hcut3 <- cutree(hc, 3)
+```
+
+Now, let us compare it with the original k-means result
+
+```{r}
+table(hcut2, hcut3, k1$cluster)
+```
+
+It looks like the hclust algorithm successfully classified 
+
+  - all the flowers of species setosa into cluster 1, 
+  - and virginica into cluster 2, 
+  - but had trouble with versicolor. 
+
+If you look at the original plot showing the different species, 
+
+  - you can understand why
+  
+Question: Why did hclust have trouble with the versicolor cluster?
+  
+  - Answer: 
+
+Let us see if we can better by using a different linkage method. 
+
+  - This time, we will use 
+    - the mean linkage method:
+
+```{r}
+hc <- hclust(dist(iris[, 3]), method = 'average')
+plot(hc)
+```
+
+which gives us the above dendrogram:
+
+
+We can see that the two best choices for number of clusters 
+
+  - are either 3 or 5. 
+  
+Let us use cutree to bring it down to 3 clusters.
+
+```{r}
+hcut4 <- cutree(hc, 3)
+table(hcut4, k1$cluster)
+```
+
+We can see that this time, 
+
+  - the algorithm did a much better job of clustering the data, 
+  - only going wrong with 6 of the data points.
+
+We can plot it as follows to compare it with the original data:
+
+  - Make your ggplot with an inner and outer color that are different
+  - by using geom_point(alpha = ..., size = ...)
+
+```{r}
+ggplot(iris, aes(Petal.Length, Petal.Width, color = factor(iris$n))) + 
+  geom_point(alpha = 1,size = 3) + geom_point(col = hcut4)
+
+```
+
+which gives us the above graph:
+
+All the points where the inner color 
+
+  - doesn’t match the outer color 
+  - are the ones which were clustered incorrectly.
+
+# Cites
+
+* Gareth James, Daniela Witten, Trevor Hastie, and Robert Tibshirani. An Introduction to Statistical Learning: With Applications in R. 1st ed. 2013, Corr. 5th printing 2015 edition. Springer Texts in Statistics. New York: Springer, 2013.
+

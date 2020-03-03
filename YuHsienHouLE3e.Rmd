@@ -1,0 +1,185 @@
+---
+title: "2001-LE3e-ISLR-Unsupervised Learning: PCA & Clustering"
+subtitle: "2001-353-353m-453-LE3e"
+author: "Roger H. French, Peitian Wang"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  pdf_document:
+    latex_engine: xelatex
+    toc: TRUE
+    number_sections: TRUE
+    toc_depth: 6
+    highlight: tango
+  html_document:
+    toc: TRUE
+urlcolor: blue
+---
+
+Use ISLR Chapter 10, Unsupervised Learning
+
+3 Questions, 2 points total.
+
+The USArrests dataset is in ISLR package, and is used in the Chapter 10 R lab examples.
+
+# ISLR 10 Exercise 10.8 
+
+Principal Components Analysis
+
+In Section 10.2.3, a formula for calculating proportion of variance explained 
+(PVE) was given in Equation 10.8.
+
+![alt text](figs/ISLR-eq10p8.png)
+
+We also saw that the PVE can be obtained using the sdev output of the prcomp() function.
+
+On the USArrests data (in the ISLR package), calculate PVE in two ways:
+
+## (a) 
+Using the sdev output of the prcomp() function, as was done in Section 10.2.3.
+
+```{r}
+library(ISLR)
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+
+data(USArrests)
+Scaled <- scale(USArrests)
+compar <- prcomp(Scaled)
+compv <- compar$sdev^2
+compv
+compv/sum(compv)
+```
+
+## (b) 
+By applying Equation 10.8 directly. 
+That is, use the prcomp() function to  compute the principal component loadings. 
+Then, use those loadings in Equation 10.8 to obtain the PVE.
+
+```{r}
+# Put your code here, with comments and good style and syntax
+head(Scaled) %>% kable
+compar$rotation %>% kable
+dim(Scaled)
+dim(compar$rotation)
+
+Scaled %*% compar$rotation %>% (function(x) x^2) %>% as.tibble %>% rowwise() %>% map_df(sum) %>% ungroup() %>% (function(x) x/sum(Scaled^2))
+```
+
+These two approaches should give the same results.
+
+Hint: You will only obtain the same results in (a) and (b) if the same data is used in both cases. 
+
+For instance, if in (a) you performed prcomp() using centered and scaled variables, then you must center
+and scale the variables before applying Equation 10.3 in (b).
+
+# ISLR 10 Exercise 9 
+
+Heirarchical Clustering
+
+Consider the USArrests data. We will now perform hierarchical clustering on the states.
+
+## (a) 
+Using hierarchical clustering with complete linkage and Euclidean distance, cluster the states.
+
+```{r}
+set.seed(2)
+hc<- hclust(dist(Scaled), method = "complete")
+
+plot(hc)
+
+
+
+
+```
+
+## (b) 
+Cut the dendrogram at a height that results in three distinct clusters. 
+
+Which states belong to which clusters?
+
+```{r}
+cutree(hc, 3)
+
+
+
+```
+
+## (c) 
+Hierarchically cluster the states using complete linkage and Euclidean distance, after scaling the variables to have standard deviation one.
+
+```{r}
+s <- scale(Scaled)
+shc <- hclust(dist(s), method = "complete")
+
+plot(shc)
+```
+
+## (d) 
+What effect does scaling the variables have on the hierarchical clustering obtained? 
+
+In your opinion, should the variables be scaled before the inter-observation dissimilarities are computed?
+
+Provide a justification for your answer.
+
+```{r}
+cutree(shc, 3)
+table(cutree(hc, 3), cutree(shc, 3))
+
+
+
+```
+
+
+# ISLR 10 Exercise 11
+
+There is a gene expression data set in your repo in 1-assignments/LabExcercise/data/Ch10Ex11.csv.
+
+This consists of 40 tissue samples with measurements on 1,000 genes. 
+
+The first 20 samples are from healthy patients, while the second 20 are from a diseased group.
+
+## (a) 
+Load in the data using read.csv(). You will need to select header=F.
+
+```{r}
+data <- read.csv("/Users/k0063/cwrudsci-20s-dsci353-353m-453-prof-f678d9ea895a/1-assignments/lab-exercise/LE3/data/Ch10Ex11.csv", header=F)
+dim(data)
+```
+
+## (b) 
+Apply hierarchical clustering to the samples using correlationbased distance, and plot the dendrogram. 
+
+Do the genes separate the samples into the two groups? 
+
+Do your results depend on the type of linkage used?
+
+```{r}
+sing <- hclust(as.dist(1-cor(data)),method='single')
+comp <- hclust(as.dist(1-cor(data)),method = 'complete')
+
+plot(sing)
+plot(comp)
+
+
+
+```
+
+## (c) 
+Your collaborator wants to know which genes differ the most across the two groups. 
+
+Suggest a way to answer this question, and apply it here.
+
+```{r}
+pr=prcomp(t(data))
+head(order(abs(rowSums(pr$rotation)),decreasing = T))
+
+
+
+
+```
+
+# Cites
+
+* Gareth James, Daniela Witten, Trevor Hastie, and Robert Tibshirani. An Introduction to Statistical Learning: With Applications in R. 1st ed. 2013, Corr. 5th printing 2015 edition. Springer Texts in Statistics. New York: Springer, 2013.
+

@@ -1,0 +1,481 @@
+---
+title: "2001-LE3c-ISLR5-6-7-Resampling-ModVarSelec-BeyondLin-Splines-GAM"
+subtitle: "2001-353-353m-453-LE3c-Resampling-ModVarSelec-BeyondLin-Splines"
+author: "Roger H. French, Peitian Wang"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+    toc: TRUE           
+    number_sections: TRUE
+    toc_depth: 6
+    highlight: tango
+  html_document:
+    toc: TRUE
+urlcolor: blue
+---
+
+# 10 Questions, 4 points total.
+
+# ISLR Chapter 5, Resampling (1.5 points)
+
+## 5.1.R1  (0.25 point possible)
+
+### When we fit a model to data, which is typically larger?
+
+  1. Test Error
+  2. Training Error
+
+#### Answer: (1) Test Error should usually are larger. Since the model is trained to vary with the Training Error.
+
+#### Explain your answer in detail.
+
+## 5.1.R2 (0.25 point)
+
+### What are reasons why test error could be LESS than training error?
+
+1. By chance, the test set has easier cases than the training set.
+2. The model is highly complex, so training error systematically overestimates test error
+3. The model is not very complex, so training error systematically overestimates test error
+
+#### Answer:  (1),(3) Since the models are complex or the testing data is noisier,it would cause miscalculations of the test error.
+
+#### Explain your answer in detail.
+
+## 5.2.R1 (0.25 points)
+
+Suppose we want to use cross-validation to estimate the error of the following procedure:
+
++ Step 1: Find the k variables most correlated with y
++ Step 2: Fit a linear regression using those variables as predictors
+
+We will estimate the error for each k from 1 to p, and then choose the best k.
+
+### True or false: a correct cross-validation procedure will possibly 
+choose a different set of k variables for every fold.
+
+#### Answer: T,The model with (k+1) predictors has one additional predictor then k predictors.
+
+#### Explain your answer in detail.
+
+
+## 5.3.R1 (0.25 points)
+
+Suppose that we perform forward stepwise regression and use cross-validation to 
+choose the best model size.
+
+Using the full data set to choose the sequence of models is the WRONG way to do 
+crossvalidation (we need to redo the model selection step within each training fold). 
+
+### If we do crossvalidation the WRONG way, which of the following is true?
+
+1. The selected model will probably be too complex
+2. The selected model will probably be too simple
+
+#### Answer: (1) There's always overfitting issue, since the error is on decreasing trend as more regressors been chosen.
+
+#### Explain your answer in detail.
+
+## 5.4.R1 (0.25 points)
+
+One way of carrying out the bootstrap 
+
+  - is to average equally over all possible bootstrap samples 
+  - from the original data set 
+    - (where two bootstrap data sets are different 
+    - if they have the same data points but in different order). 
+
+Unlike the usual implementation of the bootstrap, 
+
+  - this method has the advantage of not introducing extra noise 
+  - due to resampling randomly.
+
+### To carry out this implementation on a data set with n data points, 
+
+  - how many bootstrap data sets would we need to average over?
+
+(You can use "^" to denote power, as in "n^2")
+
+#### Answer: n^n because this is the max amount of possible number of bootstrap
+
+#### Explain your answer in detail.
+
+## 5.5.R1 (0.25 points)
+
+### If we have n data points, what is the probability 
+
+  - that a given data point does not appear in a bootstrap sample?
+
+#### Answer: probability of selecting this point is 1/n, so the probability of it doesn't appear is 1 - 1/n, and since there are n selections so the probability becomes (1 - 1/n)^n.
+
+#### Explain your answer in detail.
+
+
+
+# ISLR Chapter 6, Linear Model Selection & Regularization 
+
+## ISLR Exercise 6.10  (1 point possible)
+
+We have seen that as the number of features used in a model increases,
+the training error will necessarily decrease, but the test error may not.
+We will now explore this in a simulated data set.
+
+### (a) Generate a data set 
+Generate a data set with p = 20 features, n = 1,000 observations,
+and an associated quantitative response vector generated
+according to the model
+
+$$ Y = X \beta + \epsilon $$
+where $\beta$ has some elements that are exactly equal to zero.
+
+#### Answer: 
+```{r}
+set.seed(13)
+x <- matrix(rnorm(1000 * 20), 1000, 20)
+Beta <- rnorm(20)
+Beta[2] <- 0
+Beta[3] <- 0
+Beta[5] <- 0
+Beta[7] <- 0
+Beta[11] <- 0
+Epsilon <- rnorm(1000)
+y <- x %*% Beta + Epsilon
+```
+
+### (b) Split your data set 
+Split your data set into a training set containing 100 observations
+and a test set containing 900 observations.
+
+#### Answer: 
+```{r}
+train <- sample(seq(1000), 100, replace = FALSE)
+test <- -train
+xtrain <- x[train, ]
+xtest <- x[test, ]
+ytrain <- y[train]
+ytest <- y[test]
+
+```
+
+### (c) Perform best subset selection
+Perform best subset selection on the training set, and plot the
+training set MSE associated with the best model of each size.
+
+#### Answer:
+```{r}
+library(leaps)
+dtrain <- data.frame(y = ytrain, x = xtrain)
+regff <- regsubsets(y ~ ., data = dtrain, nvmax = 20)
+tramat <- model.matrix(y ~ ., data = dtrain, nvmax = 20)
+verror <- rep(NA, 20)
+for (i in 1:20) {
+  coef1 <- coef(regff, id = i)
+  pred <- tramat[, names(coef1)] %*% coef1
+  verror[i] <- mean((pred - ytrain)^2)
+}
+plot(verror, xlab = "# Predictors", ylab = "Training Set MSE", pch = 17, type = "b")
+
+```
+
+### (d) Plot the test set MSE 
+Plot the test set MSE associated with the best model of each
+size.
+
+#### Answer
+```{r}
+dtest <- data.frame(y = ytest, x = xtest)
+tesmat <- model.matrix(y ~ ., data = dtest, nvmax = 20)
+verror <- rep(NA, 20)
+for (i in 1:20) {
+  coef2 <- coef(regff, id = i)
+  pred <- tesmat[, names(coef2)] %*% coef2
+  verror[i] <- mean((pred - ytest)^2)
+}
+plot(verror, xlab = "# Predictors", ylab = "Test Set MSE", pch = 19, type = "b")
+```
+
+### (e) For which model sizes does the test set MSE 
+For which model size does the test set MSE take on its minimum
+value? Comment on your results. If it takes on its minimum value
+for a model containing only an intercept or a model containing
+all of the features, then play around with the way that you are
+generating the data in (a) until you come up with a scenario in
+which the test set MSE is minimized for an intermediate model
+size.
+
+#### Answer
+```{r}
+which.min(verror)
+
+
+
+
+```
+
+### (f) How does the model 
+How does the model at which the test set MSE is minimized
+compare to the true model used to generate the data? Comment
+on the coefficient values.
+
+#### Answer
+```{r}
+coef(regff, which.min(verror))
+
+
+
+
+```
+
+### (g) Create a ggplot 
+
+Create a ggplot displaying $\sqrt{\sum_{j=1}^{p} (\beta_j - \hat{\beta}_j^r)^2}$
+for a range of values of $r$, where $\hat{\beta}_j^r$ is the jth coefficient 
+estimate for the best model containing $r$ coefficients. 
+
+
+#### Answer: 
+```{r}
+verror_ <- rep(NA, 20)
+xcol = colnames(x, do.NULL = FALSE, prefix = "x.")
+for (i in 1:20) {
+    coef_ <- coef(regff, id = i)
+    verror_[i] <- sqrt(sum((Beta[xcol %in% names(coef_)] - coef_[names(coef_) %in% xcol])^2) + sum(Beta[!(xcol %in% names(coef_))])^2)
+}
+plot(verror_, xlab = "Coefficient", ylab = "Error - Estimate vs True Coef", pch = 23, type = "b")
+```
+
+Comment on what you observe. 
+
+How does this compare to the test MSE plot from (d)?
+
+#### Answer 
+We  have used 3 vars to minimize the error of estimate vs test coef, but the test error is minimized by 14 vars.
+
+
+
+
+
+
+# ISLR Chapter 7, Moving Beyond Linearity (1.5 points)
+
+## ISLR 7 Exercise 6 (0.5 point)
+
+In this exercise, you will further analyze the $Wage$ data set considered
+throughout this chapter.
+
+### (a) Perform polynomial regression to predict $wage$ using $age$. (0.5 points)
+
+#### Answer: 
+```{r}
+
+library(boot)
+library(ISLR)
+
+set.seed(31)
+pmse=c()
+
+```
+
+#### (a1) Use cross-validation to select the optimal degree d for the polynomial.
+
+##### Answer: 
+```{r}
+
+for(degree in 1:7){
+  pfit <- glm(wage ~ poly(age, degree, raw = T), data = Wage)
+  mse <- cv.glm(pfit, data = Wage, K = 10)$delta[1]
+  pmse=c(pmse, mse)
+}
+
+
+```
+
+#### (a2) What degree was chosen, and how does this compare to the results of hypothesis 
+testing using ANOVA? 
+
+##### Answer: The results agree with ANOVA. Since there is no significant reduction in the C-V error, for terms with >5th degrees.
+
+#### (a3) Make a plot of the resulting polynomial fit to the data.
+
+##### Answer: 
+```{r}
+plot(pmse,xlab='Degree of Polynomial',ylab='Cross Validation Error',type='l')
+x <- which.min(pmse)
+points(x, pmse[x], pch=20, cex=2, col='red')
+
+
+```
+
+### (b) Fit a step function to predict $wage$ using $age$ (0.5 points)
+
+#### (b1) Use crossvalidation to choose the optimal number of cuts. 
+
+##### Answer: 
+```{r}
+set.seed(37)
+smse=c()
+for(br in 2:10){
+  Wmod <- model.frame(wage ~ cut(age, br), data = Wage)
+  names(Wmod) = c('wage', 'age')
+  
+  sfit <- glm( wage ~ age , data = Wmod)
+  mse <- cv.glm(sfit , data = Wmod , K = 10)$delta[1]
+  smse = c(smse , mse)
+}
+
+
+
+```
+
+#### (b2) Make a plot of the fit obtained.
+
+##### Answer: 
+```{r}
+plot(smse , xlab = 'Degree of Polynomial' , ylab = 'Cross Validation Error' , type = 'l')
+x <- which.min( smse )
+points(x , smse[x] , pch = 43 , cex = 2 , col = 'red')
+
+
+
+```
+
+
+
+
+## ISLR 7 Exercise 10 (0.5 points)
+
+This question relates to the $College$ data set.
+
+### (a) Split the data into a training set and a test set. (0.25 point)
+Using out-of-state tuition as the response and the other variables as 
+the predictors, perform forward stepwise selection on the training set 
+in order to identify a satisfactory model that uses just a subset of the
+predictors.
+You'll want to show the learning curves that show $Cp$, $AIC$ and/or $AdjR^2$ 
+as a function of the number of variables choosen, to demonstrate the best model.
+
+#### Answer: 
+```{r}
+library(ISLR)
+
+set.seed(47)
+train <- sample(1:nrow(College),500)
+test <- -train
+
+library(leaps)
+forward <- regsubsets(Outstate~.,data=College,method = 'forward',nvmax = 17)
+
+plot(1/nrow(College)*summary(forward)$rss,type='l',xlab='Number of Predictors',ylab='Train MSE Score',xaxt='n')
+axis(side=1,at=seq(1,17,2),labels = seq(1,17,2))
+
+which(summary(forward)$which[7,-1])
+
+
+
+```
+
+### (b) Fit a GAM on the training data, (0.25 point)
+using out-of-state tuition as the response 
+and the features selected in the previous step as the predictors. 
+Plot the results, and explain your findings.
+
+#### Answer: 
+```{r}
+library(gam)
+gfit <- gam(Outstate ~ Private + s(Room.Board) + s(Personal) + s(PhD) + s(perc.alumni) + s(Expend) + s(Grad.Rate), data = College[train,])
+
+par(mfrow = c(2, 3))
+plot(gfit , se = T , col = 'blue')
+```
+
+### (c) Evaluate the model obtained on the test set, (0.25 point)
+and explain the results obtained.
+
+#### Answer:
+```{r}
+gpred <- predict( gfit , College[test,])
+gmse <- mean((College[test , 'Outstate'] - gpred) ^2 )
+gmse
+gtss <- mean((College[test , 'Outstate'] - mean(College[test , 'Outstate'])) ^2)
+testr <- 1 - gmse/gtss
+testr
+```
+
+### (d) For which variables, if any, is there evidence of (0.25 point)
+a non-linear relationship with the response?
+
+#### Answer:
+```{r}
+summary(gfit)
+```
+
+
+## Use GAMs to model how the economy is affected by weather (0.5 points)
+
+### Generate 100 rnorm data points to make your (0.25 point)
+economy and weather dataframe
+
+#### Answer:
+```{r}
+# Put your code here, with comments and good style and syntax
+```
+
+### Do a linear model on this dataframe (0.25 point)
+and plot the data and the abline
+
+#### Answer:
+```{r}
+# Put your code here, with comments and good style and syntax
+```
+
+
+### Now use a smoothing spline (0.25 point)
+to locally smooth your weather
+
+And calculate another lm linear model.
+Using a bs spline and 3 knots
+
+  - What is a bs spline
+  - indicate where the knots in your spline are
+  
+What is a bspline, a natural spline and a cubic spline
+
+#### Answer: 
+
+### Explain your lm call and how (0.25 point)
+the smoothing spline gets incorporated?
+
+#### Answer: 
+
+What are the arguments for the spline mean?
+
+#### Answer: 
+
+### Plot the data, (0.25 point)
+your smoothing spline model (use the predict function)
+
+#### Answer: 
+```{r}
+# Put your code here, with comments and good style and syntax
+```
+
+### Now use a GAM (0.25 point)
+
+You can use the gam package, or the mgcv package
+
+Explain your gam call, its arguments and their meaning
+
+#### Answer: 
+
+```{r}
+# Put your code here, with comments and good style and syntax
+```
+
+
+
+
+
+# Cites
+
+* Gareth James, Daniela Witten, Trevor Hastie, and Robert Tibshirani. An Introduction to Statistical Learning: With Applications in R. 1st ed. 2013, Corr. 5th printing 2015 edition. Springer Texts in Statistics. New York: Springer, 2013.
+

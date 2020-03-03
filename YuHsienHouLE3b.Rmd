@@ -1,0 +1,243 @@
+---
+title: "2001-LE3b-ClusteringLifeExpectancy"
+subtitle: "2001-353-353m-453-LE3b-ClusteringLifeExpectancy"
+author: "Roger H. French, Peitian Wang"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  pdf_document:
+    latex_engine: xelatex
+    toc: TRUE
+    number_sections: TRUE
+    toc_depth: 6
+    highlight: tango
+  html_document:
+    toc: TRUE
+urlcolor: blue
+---
+
+1 Questions, 1 points total.
+
+#  the best number of clusters in the life.expectancy.1971 dataset
+
+We will use the life.expectancy.1971 dataset 
+
+  - about life expectancy in several countries in 1971, 
+  - which is part of the cluster.datasets package. 
+
+It includes 10 attributes: 
+
+  + the country were the data has been collected, 
+  + the year of data collection, and 
+  + the life expectancy (remaining) for 
+    - male and female individuals 
+    - aged 0 years old, 25, 50, and 75. 
+  
+As with the previous crime dataset, 
+
+  - this one also does not specify the membership of our cases to categories. 
+
+So again, we will have to decide on the number of clusters by ourselves. 
+
+  + e will examine how to do so more precisely. 
+  + We will create a function for this purpose. 
+
+Before we do that, let's discover the dataset we will use. 
+
+Let's start by loading and examining to dataset.
+
+Show a summary of the dataset
+
+```{r}
+library(cluster.datasets)
+data(life.expectancy.1971)
+summary(life.expectancy.1971)
+```
+
+## Cleaning the data: Madagascar, Cameroon, Trinidad, US
+
+Even without computing the mean and standard deviations for the variables, 
+
+  - we can notice that there is quite some variation regarding life expectancy 
+  - (please refer to the complete output on your screen as well). 
+
+A first observation, which is broadly documented, 
+
+  - is that women have a longer remaining life expectancy 
+  - than men, at all ages. 
+
+A country strikes in this list—in Madagascar, 
+
+  - at the time of data collection, 
+    - women apparently did not have longer life expectancy 
+    - than men in their young and old years. 
+
+Further, the mean life expectancy at birth 
+
+  - was only 38 
+  - for both women and men. 
+
+This is also the life expectancy of females in Cameroon at that time, 
+
+  - whereas males were expected to live even a little less (34 years). 
+
+Looking at the table, 
+
+  - we can notice that Trinidad and the US are entered several times, 
+  - as data collection was carried out more than once. 
+
+We will therefore discard case 23 (the second entry for Trinidad), 
+
+  - as well as both cases 24 and 27 (US, data collected in 1966 and 1967) 
+  - because cases 25 and 26 are more specific, 
+  - as they provide estimations for White and Nonwhite individuals. 
+
+Let's create a new dataset without these cases 
+
+  - before we proceed with cluster analysis.
+
+Best done using dplyr
+
+```{r}
+life <- life.expectancy.1971
+life <- life[-c(23,24,27),]
+
+```
+
+## Scale the Data, and Add Some Attributes
+
+Here we will scale the data. 
+
+The importance of scaling data 
+
+  - has been discussed in the first section of this chapter. 
+
+Question: Why do we need to scale this data?
+
+  - Answer: To find the pattern of the data much easier.
+
+We also add some attributes to the dataset, 
+
+  + corresponding to the ratio of male life expectancy 
+    - to female life expectancy at all ages, 
+  + as the difference between male and females 
+    - would be lost in data scaling (all means will be 0).
+
+Use cbind for this.
+
+```{r}
+life <- life %>% mutate(r0 = m0 / f0) %>% mutate(r25 = m25 / f25) %>% mutate(r50 = as.numeric(m50) / as.numeric(f50)) %>% mutate(r75 = as.numeric(m75) / as.numeric(f75))
+
+```
+
+When you run your code, you will notice an error. 
+
+It happens that attribute f50 
+
+  - is composed of strings 
+    - instead of numeric values 
+  - (type mode(life$f50) to check this). 
+
+This is a type of problem you might encounter 
+
+  - when dealing with data you have not prepared yourself 
+    - (and sometimes even with your data). 
+
+The solution is obviously 
+
+  - to convert the attribute to numeric values 
+  - before being able to compute the ratios.
+
+Use as.numeric, then cbind
+
+```{r}
+mode(life$f50)
+
+life <- life %>% mutate(r0 = m0 / f0) %>% mutate(r25 = m25 / f25) %>% mutate(r50 = as.numeric(m50) / as.numeric(f50)) %>% mutate(r75 = as.numeric(m75) / as.numeric(f75))
+
+
+```
+
+We can now repeat our assignment to life.temp with a successful result, 
+
+  - and scale the data frame (omitting rows 1 and 2: 
+    - name of country and year of data collection). 
+
+We first convert to a data frame 
+
+  - to get rid of information about mean and standard deviation 
+  - that is contained in the returned object; we then convert to a matrix again.
+
+```{r}
+lscale <- life[,-c(1,2)]
+lscale_ <- as.matrix(data.frame(lscale))
+```
+
+## Now lets do some External Validation of our Classification
+
+When examining the iris dataset, 
+
+  - we had the correct solution 
+    - regarding the number of clusters 
+    - and the classification of cases. 
+
+This is not the case here
+
+  - we can not tell before running the analyses 
+    - the number of groups in our data. 
+
+We will therefore rely on computational trickery to discover them; 
+
+  - cluster analysis will be performed iteratively 
+    - and the clustering solutions will be compared 
+    - using several indexes for determining the ideal number of clusters.
+    
+More information about such indexes can be found in the paper 
+
+  - [Experiments for the number of clusters in k-means, by Chiang and Mirkin, 2007](https://link.springer.com/chapter/10.1007%2F978-3-540-77002-2_33) 
+  - (it should also be in your readings). 
+
+Here we rely on NbClust() function 
+
+  - from the NbClust package, 
+  - which we install and load:
+
+```{r}
+library(NbClust)
+mode(lscale)
+```
+
+We simply call the NbClust() function 
+
+  - specifying the data and clustering algorithm to be used.
+  
+By default, the function will perform clustering 
+
+  - using the Euclidean distance 
+  - and compute all available indexes. 
+  
+The reader is advised to consult the package help documentation
+
+  - for more information about customization.
+
+```{r}
+lnum <- unlist(lapply(lscale, as.numeric))
+rgxn <- NbClust(lnum, method = "kmeans",distance = "euclidean" ,index = "all")
+```
+
+Question: This shows that how many clusters is the most appropriate solution.
+
+  -  Answer: the best number of clusters is  5
+  
+Question: Explain how/what shows this, in the NbClust output.
+
+  - Answer: The Hubert index is a graphical method of determining the number of clusters.In the plot of Hubert index, we seek a significant knee that corresponds to a significant increase of the value of the measure i.e the significant peak in Hubert index second differences plot. 
+ 
+*** : The D index is a graphical method of determining the number of clusters. In the plot of D index, we seek a significant knee (the significant peak in Dindex second differences plot) that corresponds to a significant increase of the value of the measure. 
+
+
+
+
+# Cites
+
+* Gareth James, Daniela Witten, Trevor Hastie, and Robert Tibshirani. An Introduction to Statistical Learning: With Applications in R. 1st ed. 2013, Corr. 5th printing 2015 edition. Springer Texts in Statistics. New York: Springer, 2013.
+

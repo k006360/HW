@@ -1,0 +1,214 @@
+---
+title: "DSCI353-353m-453: LE2a Classification"
+subtitle: "2001-353-353m-453-LE2a"
+author: "Roger H. French, Peitian Wang"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    number_sections: true
+    toc_depth: 6
+    highlight: tango
+  html_document:
+    toc: yes
+urlcolor: blue
+---
+
+<!--
+# Script Name: 
+# Authors: Roger H. French
+# License: Creative Commons Attribution-ShareAlike 4.0 International License.
+##########
+# Latest Changelog Entires:
+# v0.00.01 - 1501cwru-dsci-NAMEIT.RMD - Roger French started this blank Rmd
+##########
+
+# Rmd code goes below the comment marker!
+-->
+
+
+\setcounter{section}{2}
+\setcounter{subsection}{1}
+\setcounter{subsubsection}{0}
+
+#### Lab Exercise 2a: Classifiation
+
+2 Questions, for a total of 2 points
+
+  - Question 1 = 1 points
+  - Question 2 = 1 points
+
+#### Question ISLR Chapter 5, Exercise 4
+
+Lets discuss k-fold cross-validation.
+
+
+##### (a) Explain how k-fold cross-validation is implemented.
+
+  - a figure can be helpful
+
+```{r}
+
+```
+
+###Answer: 
+The k-fold cross validation is dividing set into equal-sized k groups randomly.The mean squared error is computed on the observations in the held-out fold. This procedure is repeated k times; each time, a different group of observations is treated as a validation set. This process results in k estimates of the test error, MSE1,MSE2,MSEk. The k-fold CV estimate is computed by averaging these values.
+
+
+##### (b) What are the advantages and disadvantages
+
+  - of k-fold cross-validation relative to:
+    - 1. The validation set approach?
+    - 2. LOOCV?
+  
+
+```{r}
+
+```
+
+Answer: 
+The advantage:
+  The validation estimate of the test error rate can be highly variable, depending on precisely which observations are included in the training set and which observations are included in the validation set. Moreover, validation set error rate may tend to overestimate the test error rate for the model fit on the entire data set.
+
+Disadvantage of k-fold cross validation relative to the validation set: Validation set approach is conceptually simple and easy to implement.
+
+The LOOCV cross-validation approach is a special case of k-fold cross-validation in which k=n.
+
+Advantage of k-fold cross validation relative to LOOCV: LOOCV requires fitting the statistical learning method n times. This has the potential to be computationally expensive. Moreover, k-fold CV often gives more accurate estimates of the test error rate than does LOOCV.
+
+Disadvantage of k-fold cross validation relative to LOOCV: If the main purpose bias reduction, LOOCV should be preffered to k-fold CV since it tends to has less bias.
+
+So, there is a bias-variance trade-off associated with the choice of k in k-fold cross-validation; typically using k=5 or k=10 yield test error rate estimates that suffer neither from excessively high bias nor from very high variance.
+  
+
+#### Question ISLR Chapter 5, Exercise 8
+
+Perform cross-validation on a simulated data set.
+
+##### (a) Generate a simulated data set as follows:
+
+```{r}
+set.seed(1)
+y <- rnorm(100)
+x <- rnorm(100)
+y ~ x - 2 * x^2 + rnorm(100)
+```
+
+In this data set, 
+
+  - what is n 
+  - and what is p? 
+  
+Write out the model used to generate the data in equation form.
+
+###Answer: 
+n is y <- rnorm(100)
+p is x=rnorm(100) 
+y=x−2∗x2+ϵ
+
+##### (b) Create a scatterplot of X against Y . 
+
+Comment on what you find.
+
+```{r}
+plot(x,y)
+
+```
+
+###Answer: For X>1 and x<-1 there are less points, most of the points are in the region of -1<x<0.
+
+
+##### (c) Set a random seed, and then compute the LOOCV errors 
+
+  - that result from fitting the following four models 
+  - using least squares:
+
+
+1) $Y = \beta_0 + \beta_1 X + \epsilon$
+2) $Y = \beta_0 + \beta_1 X + \beta_2 X 2 + \epsilon$
+3) $Y = \beta_0 + \beta_1 X + \beta_2 X 2 + \beta_3X 3 + \epsilon$
+4) $Y = \beta_0 + \beta_1 X + \beta_2 X 2 + \beta_3X 3 + \beta_4 X 4 + \epsilon$.
+
+Note you may find it helpful 
+
+  - to build a dataframe containing both X and Y.
+  - and you could use the broom package to handle the multiple models
+  
+###Answer: 
+```{r}
+library(boot)
+data=data.frame(y,x)
+set.seed(34)
+for(i in 1:4) 
+  
+print(cv.glm(data = data,glm(y~poly(x,i),data = data))$delta[1])
+
+```
+
+
+
+
+##### (d) Repeat (c) using another random seed, 
+
+  - and report your results.
+  
+Are your results the same as what you got in (c)? Why?
+
+```{r}
+set.seed(42)
+
+for(i in 1:4) 
+  print(cv.glm(data = data,glm(y~poly(x,i),data = data))$delta[1])
+
+```
+
+###Answer: 
+The result is the same. This is because there is no sampling involved in LOOCV; the model is trained with the same observations for each cross validation test.
+
+
+(e) Which of the models in (c) 
+
+  - had the smallest LOOCV error? 
+
+Is this what you expected? 
+
+Explain your answer.
+
+```{r}
+
+```
+
+###Answer: 
+The model with the smallest LOOCV error is the quadratic model. This is to be expected from the equation that defines Y as a second degree polynomial dependent on X.
+
+
+##### (f) Comment on the statistical significance 
+
+  - of the coefficient estimates that results 
+  - from fitting each of the models in (c) using least squares. 
+  
+Do these results agree with the conclusions 
+
+  - drawn based on the cross-validation results?
+
+###Answer:   
+```{r}
+for(i in 1:4) {print(summary(glm(y~poly(x,i),data = data)))}
+
+```
+
+
+
+
+  
+#### Links
+ 
+
+
+<!--
+# Keep a complete change log history at bottom of file.
+# Complete Change Log History
+# v0.00.00 - 1405-07 - Nick Wheeler made the blank script
+##########
+
